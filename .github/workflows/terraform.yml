@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      TF_ENVIRONMENT: "dev"
+      TF_ENVIRONMENT: "dev"  # Change this to the desired environment if needed
       SNOWFLAKE_USERNAME: ${{ secrets.SNOWFLAKE_USERNAME }}
       SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
       SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
@@ -31,14 +31,15 @@ jobs:
         run: terraform fmt -check -recursive
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -chdir=dev  # Specify the working directory
 
       - name: Terraform Validate
-        run: terraform validate
+        run: terraform validate -chdir=dev  # Specify the working directory
 
       - name: Terraform Plan
         id: plan
         run: terraform plan \
+          -chdir=dev \  # Specify the working directory
           -var="snowflake_username=${SNOWFLAKE_USERNAME}" \
           -var="snowflake_password=${SNOWFLAKE_PASSWORD}" \
           -var="snowflake_account=${SNOWFLAKE_ACCOUNT}" \
@@ -47,4 +48,4 @@ jobs:
 
       - name: Terraform Apply (Approve Only)
         if: github.event_name == 'push'
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -chdir=dev -auto-approve tfplan  # Specify the working directory
