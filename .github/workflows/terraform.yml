@@ -1,0 +1,50 @@
+name: Terraform CI/CD Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    env:
+      TF_ENVIRONMENT: "dev"
+      SNOWFLAKE_USERNAME: ${{ secrets.SNOWFLAKE_USERNAME }}
+      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: true
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan \
+          -var="snowflake_username=${SNOWFLAKE_USERNAME}" \
+          -var="snowflake_password=${SNOWFLAKE_PASSWORD}" \
+          -var="snowflake_account=${SNOWFLAKE_ACCOUNT}" \
+          -out=tfplan
+        continue-on-error: true
+
+      - name: Terraform Apply (Approve Only)
+        if: github.event_name == 'push'
+        run: terraform apply -auto-approve tfplan
